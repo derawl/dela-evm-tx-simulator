@@ -1,0 +1,79 @@
+{
+  "name": "tx-simulator",
+  "version": "1.0.0",
+  "description": "A modular EVM transaction simulator with CLI, desktop app, and VS Code extension",
+  "main": "dist/core/index.js",
+  "bin": {
+    "tx-sim": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "dev:cli": "ts-node src/cli/index.ts",
+    "dev:desktop": "electron dist/desktop/main.js",
+    "build:desktop": "npm run build && electron-builder",
+    "build:extension": "npm run build && webpack --config src/extension/webpack.config.js",
+    "test": "jest",
+    "prepare": "npm run build",
+    "example": "ts-node examples/contract-call.ts"
+  },
+  "keywords": [
+    "ethereum",
+    "transaction",
+    "simulator",
+    "anvil",
+    "foundry",
+    "blockchain"
+  ],
+  "author": "Delalie Rawllings (@derawl)",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/inquirer": "^8.2.5",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "ts-loader": "^9.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0",
+    "vsce": "^2.15.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/inquirer": "^9.0.0",
+    "axios": "^1.0.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "ethers": "^6.0.0",
+    "inquirer": "^8.2.5",
+    "ora": "^5.4.1",
+    "vscode": "^1.1.37"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "build": {
+    "appId": "com.txsimulator.app",
+    "productName": "TX Simulator",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "binaries/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "binaries/",
+        "to": "binaries/"
+      }
+    ]
+  }
+}
