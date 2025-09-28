@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+    <title>TX Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-content">
+                <h1><span class="logo">⚡</span> TX Simulator</h1>
+                <div class="header-actions">
+                    <button id="new-simulation" class="btn btn-primary">
+                        <span class="icon">➕</span> New Simulation
+                    </button>
+                    <button id="run-simulation" class="btn btn-success" disabled>
+                        <span class="icon">▶️</span> Run
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="sidebar">
+                <div class="section">
+                    <h3>Network Configuration</h3>
+                    <div class="form-group">
+                        <label for="rpc-url">RPC URL:</label>
+                        <input type="url" id="rpc-url" placeholder="https://ethereum-rpc.publicnode.com" 
+                               value="https://ethereum-rpc.publicnode.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="fork-block">Fork Block (optional):</label>
+                        <input type="number" id="fork-block" placeholder="Latest">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Transaction Details</h3>
+                    <div class="form-group">
+                        <label for="from-address">From Address:</label>
+                        <input type="text" id="from-address" 
+                               placeholder="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+                               value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045">
+                    </div>
+                    <div class="form-group">
+                        <label for="to-address">To Address:</label>
+                        <input type="text" id="to-address" 
+                               placeholder="0xA0b86a33E6417aF98E62f9a7D3B8c1e9B11B2F6C"
+                               value="0xA0b86a33E6417aF98E62f9a7D3B8c1e9B11B2F6C">
+                    </div>
+                    <div class="form-group">
+                        <label for="value">Value (ETH):</label>
+                        <input type="number" id="value" step="0.01" placeholder="0.01" value="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="gas-limit">Gas Limit (optional):</label>
+                        <input type="number" id="gas-limit" placeholder="Auto">
+                    </div>
+                    <div class="form-group">
+                        <label for="gas-price">Gas Price (gwei, optional):</label>
+                        <input type="number" id="gas-price" step="0.1" placeholder="Auto">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Advanced Options</h3>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enable-trace" checked>
+                            <span class="checkmark"></span>
+                            Enable Transaction Tracing
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="debug-mode">
+                            <span class="checkmark"></span>
+                            Debug Mode
+                        </label>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Actions</h3>
+                    <button id="validate-config" class="btn btn-secondary btn-full">
+                        <span class="icon">✓</span> Validate Configuration
+                    </button>
+                    <button id="clear-results" class="btn btn-warning btn-full">
+                        <span class="icon">🗑️</span> Clear Results
+                    </button>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="results">Results</button>
+                    <button class="tab-button" data-tab="trace">Transaction Trace</button>
+                    <button class="tab-button" data-tab="logs">Logs</button>
+                </div>
+
+                <div class="tab-content">
+                    <div id="results-tab" class="tab-panel active">
+                        <div id="no-results" class="empty-state">
+                            <div class="empty-icon">📊</div>
+                            <h3>No Simulation Results</h3>
+                            <p>Configure your transaction parameters and click "Run" to simulate a transaction.</p>
+                        </div>
+                        <div id="simulation-results" class="results hidden">
+                            <div class="result-header">
+                                <h3>Simulation Results</h3>
+                                <div class="result-status">
+                                    <span id="result-status-badge" class="badge"></span>
+                                </div>
+                            </div>
+                            <div class="result-details">
+                                <div class="detail-group">
+                                    <h4>Transaction Hash</h4>
+                                    <code id="tx-hash" class="code-block"></code>
+                                </div>
+                                <div class="detail-group">
+                                    <h4>Gas Information</h4>
+                                    <div class="detail-row">
+                                        <span>Gas Used:</span>
+                                        <code id="gas-used"></code>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span>Gas Limit:</span>
+                                        <code id="gas-limit-result"></code>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span>Gas Price:</span>
+                                        <code id="gas-price-result"></code>
+                                    </div>
+                                </div>
+                                <div class="detail-group">
+                                    <h4>Block Information</h4>
+                                    <div class="detail-row">
+                                        <span>Block Number:</span>
+                                        <code id="block-number"></code>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span>Block Hash:</span>
+                                        <code id="block-hash"></code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="trace-tab" class="tab-panel">
+                        <div id="no-trace" class="empty-state">
+                            <div class="empty-icon">🔍</div>
+                            <h3>No Transaction Trace</h3>
+                            <p>Enable tracing and run a simulation to see detailed execution steps.</p>
+                        </div>
+                        <div id="trace-results" class="hidden">
+                            <div class="trace-header">
+                                <h3>Transaction Trace</h3>
+                                <div class="trace-controls">
+                                    <button id="expand-all-trace" class="btn btn-sm">Expand All</button>
+                                    <button id="collapse-all-trace" class="btn btn-sm">Collapse All</button>
+                                </div>
+                            </div>
+                            <div id="trace-content" class="trace-content">
+                                <!-- Trace data will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="logs-tab" class="tab-panel">
+                        <div class="logs-header">
+                            <h3>Execution Logs</h3>
+                            <button id="clear-logs" class="btn btn-sm">Clear Logs</button>
+                        </div>
+                        <div id="logs-content" class="logs-content">
+                            <div class="log-entry log-info">
+                                <span class="log-time">00:00:00</span>
+                                <span class="log-message">TX Simulator started</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="status-bar" class="status-bar">
+            <div class="status-left">
+                <span id="connection-status" class="status-item">
+                    <span class="status-dot status-disconnected"></span>
+                    Disconnected
+                </span>
+            </div>
+            <div class="status-right">
+                <span id="version" class="status-item">v1.0.0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <div id="loading-message" class="loading-message">Running simulation...</div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+{
+  "name": "tx-simulator",
+  "displayName": "TX Simulator",
+  "description": "EVM Transaction Simulator for VS Code - Fork, simulate, and test blockchain transactions",
+  "version": "1.0.0",
+  "publisher": "your-publisher-name",
+  "icon": "assets/icon.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Testing",
+    "Debuggers"
+  ],
+  "keywords": [
+    "ethereum",
+    "blockchain",
+    "transaction",
+    "simulation",
+    "anvil",
+    "foundry",
+    "evm"
+  ],
+  "activationEvents": [
+    "onLanguage:solidity",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "workspaceContains:**/*.sol",
+    "workspaceContains:**/foundry.toml",
+    "workspaceContains:**/hardhat.config.*"
+  ],
+  "main": "./dist/extension/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "tx-simulator.openSimulator",
+        "title": "Open TX Simulator",
+        "category": "TX Simulator"
+      },
+      {
+        "command": "tx-simulator.simulateTransaction",
+        "title": "Simulate Transaction",
+        "category": "TX Simulator"
+      },
+      {
+        "command": "tx-simulator.quickSimulate",
+        "title": "Quick Simulate",
+        "category": "TX Simulator"
+      },
+      {
+        "command": "tx-simulator.importFromProject",
+        "title": "Import Contract from Project",
+        "category": "TX Simulator"
+      },
+      {
+        "command": "tx-simulator.viewHistory",
+        "title": "View Simulation History",
+        "category": "TX Simulator"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "tx-simulator.simulateTransaction",
+          "when": "editorHasSelection && (resourceExtname == .sol || resourceExtname == .js || resourceExtname == .ts)",
+          "group": "1_modification"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "tx-simulator.importFromProject",
+          "when": "resourceExtname == .sol",
+          "group": "7_modification"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "tx-simulator.openSimulator"
+        },
+        {
+          "command": "tx-simulator.simulateTransaction"
+        },
+        {
+          "command": "tx-simulator.quickSimulate"
+        },
+        {
+          "command": "tx-simulator.importFromProject"
+        },
+        {
+          "command": "tx-simulator.viewHistory"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "tx-simulator-explorer",
+          "name": "TX Simulator",
+          "when": "workspaceHasBlockchainFiles"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tx-simulator",
+          "title": "TX Simulator",
+          "icon": "$(debug-alt)"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "TX Simulator",
+      "properties": {
+        "tx-simulator.defaultRpcUrl": {
+          "type": "string",
+          "default": "https://rpc.ankr.com/eth",
+          "description": "Default RPC URL for simulations"
+        },
+        "tx-simulator.defaultAnvilPort": {
+          "type": "number",
+          "default": 8545,
+          "description": "Default port for Anvil fork"
+        },
+        "tx-simulator.autoDetectContracts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically detect contracts in the workspace"
+        },
+        "tx-simulator.enableTracing": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable transaction tracing by default"
+        },
+        "tx-simulator.maxHistoryEntries": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum number of simulation history entries to keep"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "tx-simulator.openSimulator",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "tx-simulator.quickSimulate",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "webpack --config src/extension/webpack.config.js",
+    "watch": "webpack --config src/extension/webpack.config.js --watch",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "vsce": "^2.15.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/tx-simulator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/tx-simulator/issues"
+  },
+  "homepage": "https://github.com/your-org/tx-simulator#readme"
+}
