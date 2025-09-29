@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
-    <title>DELA TX Simulator</title>
+    <title>Dela TX Simulator</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -43,14 +43,14 @@
                     <div class="form-group">
                         <label for="from-address">From Address:</label>
                         <input type="text" id="from-address" 
-                               placeholder="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
-                               value="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045">
+                               placeholder="0xbb396e61c2ade58eeadee95f988d5b17cd865a7e"
+                               value="0xbb396e61c2ade58eeadee95f988d5b17cd865a7e">
                     </div>
                     <div class="form-group">
                         <label for="to-address">To Address:</label>
                         <input type="text" id="to-address" 
-                               placeholder="0xA0b86a33E6417aF98E62f9a7D3B8c1e9B11B2F6C"
-                               value="0xA0b86a33E6417aF98E62f9a7D3B8c1e9B11B2F6C">
+                               placeholder="0xea91daeae68ff8967d8e466b974385bef4e8fd1b"
+                               value="0xea91daeae68ff8967d8e466b974385bef4e8fd1b">
                     </div>
                     <div class="form-group">
                         <label for="value">Value (ETH):</label>
@@ -63,6 +63,38 @@
                     <div class="form-group">
                         <label for="gas-price">Gas Price (gwei, optional):</label>
                         <input type="number" id="gas-price" step="0.1" placeholder="Auto">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Contract Interaction</h3>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enable-contract-call">
+                            <span class="checkmark"></span>
+                            Enable Contract Function Call
+                        </label>
+                    </div>
+                    <div id="contract-fields" class="contract-fields hidden">
+                        <div class="form-group">
+                            <label for="function-signature">Function Signature:</label>
+                            <input type="text" id="function-signature" 
+                                   placeholder="createGameMarket(uint256,bytes16,bytes)"
+                                   value="createGameMarket(uint256,bytes16,bytes)">
+                            <small class="form-hint">Enter the function name with parameter types. Leave empty to use raw calldata instead.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="function-params">Function Parameters (JSON):</label>
+                            <textarea id="function-params" rows="3" 
+                                      placeholder='["4", "0xeb1dcadcfca10960803009411023082d", "0x0000000000000000000000003b57b60b53444d9a44a3b2c9871e6627630b770900000000000000000000000000000000000000000000021e19e0c9bab240000000000000000000000000000000000000000000000000021e19e0c9bab240000000000000000000000000000000000000000000000000021e19e0c9bab240000000000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000839b680fffffffffffffffffffffffffffffffffffffffffffffffffffffffff76abc00000000000000000000000000000000000000000000000000000000000bdc7fc0"]'>["4", "0xeb1dcadcfca10960803009411023082d", "0x0000000000000000000000003b57b60b53444d9a44a3b2c9871e6627630b770900000000000000000000000000000000000000000000021e19e0c9bab240000000000000000000000000000000000000000000000000021e19e0c9bab240000000000000000000000000000000000000000000000000021e19e0c9bab240000000000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000839b680fffffffffffffffffffffffffffffffffffffffffffffffffffffffff76abc00000000000000000000000000000000000000000000000000000000000bdc7fc0"]</textarea>
+                            <small class="form-hint">Enter parameters as JSON array. Required if function signature is provided and function takes parameters.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="raw-calldata">Raw Calldata (alternative):</label>
+                            <textarea id="raw-calldata" rows="2" 
+                                      placeholder="0xa9059cbb000000000000000000000000742d35cc6601c02b6c7c5a8a66b57c8b8d7e3b78"></textarea>
+                            <small class="form-hint">Use this instead of function signature + parameters if you have the encoded calldata</small>
+                        </div>
                     </div>
                 </div>
 
