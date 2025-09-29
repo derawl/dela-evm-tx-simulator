@@ -236,47 +236,47 @@ function validateForm() {
                   config.toAddress;
     
     console.log('Basic validation passed:', isValid);
+
+    addLog('info', `Validating configuration: RPC URL, From, To addresses are ${isValid ? 'valid' : 'invalid'}`);
     
     // Contract call validation
     if (elements.enableContractCall && elements.enableContractCall.checked) {
         console.log('Contract call is enabled, validating contract parameters');
+        addLog('info', 'Contract interaction enabled, validating contract parameters.');
         
         const hasFunction = config.functionSignature && config.functionSignature.trim();
         const hasRawData = config.rawData && config.rawData.trim();
         
         console.log('Has function:', hasFunction, 'Has raw data:', hasRawData);
+        addLog('info', `Function signature provided: ${!!hasFunction}, Raw calldata provided: ${!!hasRawData}`);
         
-        // For contract calls, we need EITHER function signature OR raw data
-        if (!hasFunction && !hasRawData) {
-            console.log('Contract validation failed: no function or raw data provided');
+        // Check for invalid JSON parameters
+        if (config.hasInvalidParams) {
+            console.log('Contract validation failed: invalid JSON parameters');
+            addLog('error', 'Function parameters must be valid JSON array format.');
             isValid = false;
-        }
-        
-        // If function signature is provided AND params exist, validate JSON parameters
-        if (hasFunction && config.functionParams && config.functionParams.trim()) {
-            try {
-                JSON.parse(config.functionParams);
-                console.log('Function parameters JSON is valid');
-            } catch (error) {
-                console.log('Function parameters JSON is invalid:', error);
-                isValid = false;
-            }
-        }
-        
-        // If we have function signature but no params, that's still valid (some functions take no params)
-        if (hasFunction) {
-            console.log('Function signature provided, validation passed');
+        } else if (!hasFunction && !hasRawData) {
+            // For contract calls, we need EITHER function signature OR raw data
+            console.log('Contract validation failed: no function or raw data provided');
+            addLog('error', 'For contract calls, provide either a function signature or raw calldata.');
+            isValid = false;
+        } else {
+            // If we have function signature, that's sufficient (params are optional)
+            // If we have raw data, that's also sufficient
+            console.log('Contract validation passed - have function signature or raw data');
+            addLog('success', 'Contract parameters are valid.');
         }
         
     } else {
         console.log('Contract call is disabled, checking ETH value for transfer');
+        addLog('info', 'Contract interaction disabled, validating ETH transfer parameters.');
         // For ETH transfers, require a value > 0
         isValid = isValid && config.value > 0;
         console.log('ETH transfer validation, value > 0:', config.value > 0, 'Value:', config.value);
     }
     
     console.log('Final validation result:', isValid);
-    
+    addLog('info', `Configuration validation ${isValid ? 'passed' : 'failed'}`);
     // Visual feedback could be added here
     
     return isValid;
@@ -324,11 +324,12 @@ function getFormConfig() {
                 } catch (error) {
                     console.warn('Invalid function parameters JSON:', error);
                     console.warn('Raw string that failed to parse:', JSON.stringify(functionParams));
-                    // Store the raw string for validation to catch
-                    config.functionParams = functionParams;
+                    // Don't store invalid JSON - validation will catch this
+                    // But store a flag so we know there was an attempt
+                    config.hasInvalidParams = true;
                 }
             } else {
-                console.log('No function parameters provided');
+                console.log('No function parameters provided (this is valid for functions with no params)');
             }
         }
 
@@ -379,6 +380,7 @@ async function handleRunSimulation() {
     }
 
     const config = getFormConfig();
+    addLog('info', 'Running simulation with config:');
     if (!validateForm()) {
         addLog('error', 'Invalid configuration. Please check your inputs.');
         return;
@@ -406,6 +408,7 @@ async function handleRunSimulation() {
 
         // Add contract interaction parameters if present
         if (config.functionSignature) {
+            addLog('info', `Using function signature: ${config.functionSignature}`);
             simulationConfig.functionSignature = config.functionSignature;
         }
         if (config.functionParams) {
@@ -423,7 +426,8 @@ async function handleRunSimulation() {
             displaySimulationResult(result.result);
             addLog('success', 'Simulation completed successfully');
         } else {
-            addLog('error', `Simulation failed: ${result.error}`);
+            addLog('error', `Simulation failed: ${JSON.stringify(result)}`);
+            displaySimulationResult(result.result || {});
         }
     } catch (error) {
         console.error('Simulation error:', error);
