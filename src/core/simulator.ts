@@ -51,7 +51,6 @@ export class TransactionSimulator extends EventEmitter {
     const isDev =
       process.env.NODE_ENV === "development" ||
       !process.env.NODE_ENV ||
-      process.defaultApp ||
       /[\\/]electron-prebuilt[\\/]/.test(process.execPath) ||
       /[\\/]electron[\\/]/.test(process.execPath);
 
@@ -299,13 +298,19 @@ export class TransactionSimulator extends EventEmitter {
       });
 
       castProcess.on("close", (code) => {
+        // Always parse Cast output to preserve trace data, regardless of exit code
+        const result = this.parseCastOutput(output, error);
+
         if (code === 0) {
-          // Parse Cast output to extract simulation results
-          const result = this.parseCastOutput(output);
           this.emit("log", "Transaction simulation completed");
           resolve(result);
         } else {
-          reject(new Error(`Cast execution failed: ${error}`));
+          // Transaction failed but preserve trace data
+          result.success = false;
+          result.error =
+            error.trim() || `Transaction failed (exit code: ${code})`;
+          this.emit("log", `Transaction failed: ${result.error}`);
+          resolve(result); // Resolve (not reject) to preserve trace data
         }
       });
 
@@ -319,7 +324,10 @@ export class TransactionSimulator extends EventEmitter {
    * Parse Cast command output to extract simulation results
    * Handles different output formats from cast call/send commands
    */
-  private parseCastOutput(output: string): SimulationResult {
+  private parseCastOutput(
+    output: string,
+    errorOutput?: string
+  ): SimulationResult {
     try {
       const result: SimulationResult = {
         success: true,
@@ -327,15 +335,40 @@ export class TransactionSimulator extends EventEmitter {
         rawOutput: output, // Store raw output for debugging and trace display
       };
 
+      // Extract decoded error names from error output for enhanced trace display
+      const errorMappings = new Map<string, string>();
+      if (errorOutput) {
+        // Extract custom error mappings like: 0x795f6780: LBM_DUPLICATE_MARKET
+        const errorRegex = /(0x[a-fA-F0-9]{8}):\s*([A-Z_][A-Z0-9_]*)/g;
+        let match;
+        while ((match = errorRegex.exec(errorOutput)) !== null) {
+          errorMappings.set(match[1], match[2]);
+        }
+      }
+
       // Check if this is trace output (contains execution traces)
       if (
         this.config.traceEnabled &&
         (output.includes("Traces:") ||
           output.includes("[CALL]") ||
-          output.includes("[CREATE]"))
+          output.includes("[CREATE]") ||
+          output.includes("[STATICCALL]") ||
+          output.includes("[DELEGATECALL]") ||
+          output.includes("└─") ||
+          output.includes("├─") ||
+          output.includes("[0]") ||
+          output.includes("::"))
       ) {
         // Parse trace output
         result.trace = this.parseTraceOutput(output);
+
+        // Enhance trace with decoded error names
+        if (errorMappings.size > 0 && result.trace.rawOutput) {
+          result.trace.rawOutput = this.enhanceTraceWithErrorNames(
+            result.trace.rawOutput,
+            errorMappings
+          );
+        }
 
         // Store the complete raw output for detailed view
         if (!result.trace.rawOutput) {
@@ -374,6 +407,27 @@ export class TransactionSimulator extends EventEmitter {
         rawOutput: output, // Include raw output for debugging
       };
     }
+  }
+
+  /**
+   * Enhance trace output by replacing error hashes with decoded error names
+   */
+  private enhanceTraceWithErrorNames(
+    traceOutput: string,
+    errorMappings: Map<string, string>
+  ): string {
+    let enhancedTrace = traceOutput;
+
+    // Replace error hashes with decoded names in the trace
+    for (const [errorHash, errorName] of errorMappings) {
+      const regex = new RegExp(errorHash, "g");
+      enhancedTrace = enhancedTrace.replace(
+        regex,
+        `${errorHash} (${errorName})`
+      );
+    }
+
+    return enhancedTrace;
   }
 
   /**
