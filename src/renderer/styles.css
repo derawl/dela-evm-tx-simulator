@@ -460,44 +460,74 @@ body {
     font-weight: 600;
 }
 
+.trace-function-call {
+    color: #2980b9; /* Darker blue for actual function calls */
+    font-weight: 600;
+    background: rgba(52, 152, 219, 0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.trace-transfer {
+    color: #27ae60; /* Green for ETH transfers */
+    font-weight: 600;
+    background: rgba(39, 174, 96, 0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.trace-label {
+    color: #95a5a6; /* Light gray for labels */
+    font-weight: 400;
+    font-size: 10px;
+}
+
 .trace-gas {
     color: #f39c12; /* Yellow/gold for gas amounts */
     font-weight: 500;
+    cursor: help;
 }
 
 .trace-value {
     color: #27ae60; /* Green for ETH values */
     font-weight: 600;
+    cursor: help;
 }
 
 .trace-success {
     color: #2ecc71; /* Bright green for success */
     font-weight: 600;
+    cursor: help;
 }
 
 .trace-revert {
     color: #e74c3c; /* Red for reverts/errors */
     font-weight: 600;
+    cursor: help;
 }
 
 .trace-call {
     color: #9b59b6; /* Purple for CALL */
     font-weight: 600;
+    cursor: help;
 }
 
 .trace-staticcall {
     color: #8e44ad; /* Darker purple for STATICCALL */
     font-weight: 600;
+    cursor: help;
 }
 
 .trace-delegatecall {
     color: #6c3483; /* Even darker purple for DELEGATECALL */
     font-weight: 600;
+    cursor: help;
 }
 
 .trace-create {
     color: #16a085; /* Teal for CREATE operations */
     font-weight: 600;
+    cursor: help;
 }
 
 .trace-tree {
@@ -754,4 +784,53 @@ body {
         border-right: none;
         border-bottom: 1px solid #ddd;
     }
+}
+
+/* Contract interaction styles */
+.form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    padding: 0.5rem;
+    border: 1px solid #3c4043;
+    border-radius: 4px;
+    background: #2d2d30;
+    color: #cccccc;
+    font-size: 0.875rem;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 0 1px #0078d4;
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: #8a8a8a;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+.contract-fields {
+    padding: 0.75rem;
+    background: #252526;
+    border: 1px solid #3c4043;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+}
+
+.contract-fields.hidden {
+    display: none;
+}
+
+.contract-fields .form-group {
+    margin-bottom: 0.75rem;
+}
+
+.contract-fields .form-group:last-child {
+    margin-bottom: 0;
 }
