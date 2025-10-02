@@ -37,19 +37,48 @@ function createWindow(): void {
     mainWindow.webContents.openDevTools();
   } else {
     // In production, load from file
-    mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
+    const rendererPath = path.join(__dirname, "../renderer/index.html");
+    console.log("Loading renderer from:", rendererPath);
+    mainWindow.loadFile(rendererPath).catch((err) => {
+      console.error("Failed to load renderer:", err);
+      // Fallback: try to load from resources
+      const fallbackPath = path.join(
+        process.resourcesPath,
+        "app.asar",
+        "dist/renderer/index.html"
+      );
+      console.log("Trying fallback path:", fallbackPath);
+      if (mainWindow) {
+        mainWindow.loadFile(fallbackPath).catch((err2) => {
+          console.error("Fallback also failed:", err2);
+        });
+      }
+    });
   }
 
   // Show window when ready to prevent visual flash
   mainWindow.once("ready-to-show", () => {
     if (mainWindow) {
       mainWindow.show();
+      console.log("Main window shown successfully");
     }
   });
 
   // Handle window closed
   mainWindow.on("closed", () => {
     mainWindow = null;
+  });
+
+  // Add error handling for the webContents
+  mainWindow.webContents.on(
+    "did-fail-load",
+    (event, errorCode, errorDescription) => {
+      console.error("Failed to load page:", errorCode, errorDescription);
+    }
+  );
+
+  mainWindow.webContents.on("crashed", () => {
+    console.error("Renderer process crashed!");
   });
 
   // Set up the menu
