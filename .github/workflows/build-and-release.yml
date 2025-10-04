@@ -2,8 +2,11 @@ name: Build and Release Electron App
 
 on:
   push:
+    branches: [main, master] # Triggers on pushes to main/master
     tags:
       - "v*.*.*" # Triggers on version tags like v1.0.0, v1.2.3, etc.
+  pull_request:
+    branches: [main, master] # Also trigger on PRs
   workflow_dispatch: # Allows manual triggering
 
 jobs:
@@ -24,18 +27,39 @@ jobs:
           node-version: "18"
           cache: "npm"
 
+      - name: Clean npm cache
+        run: npm cache clean --force
+
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-optional --no-fund --no-audit
         env:
           CI: true
+          NODE_ENV: production
 
       - name: Build TypeScript
         run: npm run build
 
-      - name: Build Electron App
+      - name: Build Electron App (Windows)
+        if: matrix.os == 'windows-latest'
         run: npm run build:desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+
+      - name: Build Electron App (macOS)
+        if: matrix.os == 'macos-latest'
+        run: npm run build:desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Build Electron App (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run build:desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
