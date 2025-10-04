@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30 # Add timeout to prevent hanging
+    timeout-minutes: 30
 
     strategy:
       matrix:
@@ -46,7 +46,7 @@ jobs:
         run: |
           npm config set fund false
           npm config set audit false
-          npm install --verbose --no-optional --no-shrinkwrap
+          npm install --include=dev --verbose --no-optional --no-shrinkwrap
         shell: cmd
         env:
           CI: true
@@ -60,12 +60,21 @@ jobs:
         run: |
           npm config set fund false
           npm config set audit false
-          npm install --verbose --omit=optional
+          npm install --include=dev --verbose --omit=optional
         env:
           CI: true
           NODE_ENV: development
 
-      - name: Install TypeScript globally
+      - name: Verify dev dependencies installed
+        run: |
+          echo "Checking if @types/node is installed:"
+          npm list @types/node || echo "@types/node not found"
+          echo "Checking if typescript is installed:"
+          npm list typescript || echo "typescript not found"
+          echo "Checking if @types/jest is installed:"
+          npm list @types/jest || echo "@types/jest not found"
+
+      - name: Install TypeScript globally (fallback)
         run: npm install -g typescript
 
       - name: Verify TypeScript installation
@@ -80,22 +89,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
-          NODE_ENV: production
 
-      # - name: Build Electron App (macOS)
-      #   if: matrix.os == 'macos-latest'
-      #   run: npm run build:desktop
-      #   env:
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     CI: true
-      #     CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Build Electron App (macOS)
+        if: matrix.os == 'macos-latest'
+        run: npm run build:desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      # - name: Build Electron App (Linux)
-      #   if: matrix.os == 'ubuntu-latest'
-      #   run: npm run build:desktop
-      #   env:
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     CI: true
+      - name: Build Electron App (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run build:desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
