@@ -5,15 +5,31 @@
 
 import { app, BrowserWindow, Menu, ipcMain, dialog } from "electron";
 import * as path from "path";
+import * as fs from "fs";
 import { createSimulator, SimulationConfig } from "../core";
 
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
 
+// Create a log file for debugging
+const logPath = path.join(process.cwd(), "tx-simulator-debug.log");
+function debugLog(message: string) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  console.log(message);
+  try {
+    fs.appendFileSync(logPath, logMessage);
+  } catch (err) {
+    console.error("Failed to write to log file:", err);
+  }
+}
+
 /**
  * Create the main application window
  */
-function createWindow(): void {
+async function createWindow(): Promise<void> {
+  debugLog("[MAIN] Creating main window...");
+  
   // Create the browser window
   mainWindow = new BrowserWindow({
     height: 900,
@@ -27,42 +43,103 @@ function createWindow(): void {
     },
     icon: path.join(__dirname, "../../assets/icon.png"), // Add app icon
     title: "TX Simulator",
-    show: false, // Don't show until ready
+    show: false, // Don't show until ready-to-show event
   });
+  
+  debugLog("[MAIN] Main window created successfully");
 
   // Load the app's HTML
-  if (process.env.NODE_ENV === "development") {
-    // In development, load from local server
-    mainWindow.loadURL("http://localhost:3000");
-    mainWindow.webContents.openDevTools();
+  debugLog("[MAIN] Loading renderer...");
+  debugLog("[MAIN] __dirname: " + __dirname);
+  debugLog("[MAIN] process.resourcesPath: " + (process as any).resourcesPath);
+  debugLog("[MAIN] NODE_ENV: " + process.env.NODE_ENV);
+  
+  // Load the app's HTML
+  debugLog("[MAIN] Loading renderer...");
+  debugLog("[MAIN] __dirname: " + __dirname);
+  debugLog("[MAIN] process.resourcesPath: " + (process as any).resourcesPath);
+  debugLog("[MAIN] NODE_ENV: " + process.env.NODE_ENV);
+  debugLog("[MAIN] app.isPackaged: " + app.isPackaged);
+  
+  // Proper detection of development vs packaged mode
+  const isDevelopment = process.env.NODE_ENV === "development" || !app.isPackaged;
+  
+  if (isDevelopment) {
+    debugLog("[MAIN] Development mode - loading from localhost or local files");
+    
+    // Try local development server first, then local files
+    try {
+      await mainWindow.loadURL("http://localhost:3000");
+      debugLog("[MAIN] Loaded from development server");
+      mainWindow.webContents.openDevTools();
+    } catch (err) {
+      debugLog("[MAIN] Dev server not available, loading from local files");
+      const devRendererPath = path.join(__dirname, "../renderer/index.html");
+      await mainWindow.loadFile(devRendererPath);
+      debugLog("[MAIN] Loaded from local dev files");
+    }
   } else {
-    // In production, load from file
-    const rendererPath = path.join(__dirname, "../renderer/index.html");
-    console.log("Loading renderer from:", rendererPath);
-    mainWindow.loadFile(rendererPath).catch((err) => {
-      console.error("Failed to load renderer:", err);
-      // Fallback: try to load from resources
-      const fallbackPath = path.join(
-        process.resourcesPath,
-        "app.asar",
-        "dist/renderer/index.html"
-      );
-      console.log("Trying fallback path:", fallbackPath);
-      if (mainWindow) {
-        mainWindow.loadFile(fallbackPath).catch((err2) => {
-          console.error("Fallback also failed:", err2);
-        });
-      }
-    });
+    debugLog("[MAIN] Packaged mode - loading from asar");
+    
+    // In packaged mode, files are in asar archive
+    // The correct path inside asar is relative to the main process location
+    const rendererPath = path.join(__dirname, "..", "renderer", "index.html");
+    debugLog(`[MAIN] Loading from packaged path: ${rendererPath}`);
+    
+    try {
+      await mainWindow.loadFile(rendererPath);
+      debugLog("[MAIN] Successfully loaded from packaged path");
+    } catch (err) {
+      debugLog(`[MAIN] Failed to load from packaged path: ${err}`);
+      
+      // Fallback to error page
+      const fallbackHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>TX Simulator - Error</title>
+          <style>
+            body { 
+              font-family: Arial; 
+              margin: 40px;
+              background: #f0f0f0;
+            }
+            .error { color: red; }
+          </style>
+        </head>
+        <body>
+          <h1>TX Simulator - Renderer Loading Error</h1>
+          <p class="error">Could not load main interface from packaged path</p>
+          <p><strong>__dirname:</strong> ${__dirname}</p>
+          <p><strong>Attempted path:</strong> ${rendererPath}</p>
+          <p><strong>app.isPackaged:</strong> ${app.isPackaged}</p>
+          <p><strong>Error:</strong> ${err}</p>
+        </body>
+        </html>
+      `;
+      await mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fallbackHtml)}`);
+      debugLog("[MAIN] Loaded fallback HTML");
+    }
   }
 
   // Show window when ready to prevent visual flash
   mainWindow.once("ready-to-show", () => {
+    debugLog("[MAIN] Window ready-to-show event fired");
     if (mainWindow) {
       mainWindow.show();
-      console.log("Main window shown successfully");
+      mainWindow.focus();
+      debugLog("[MAIN] Window shown and focused");
     }
   });
+  
+  // Force show after timeout if ready-to-show doesn't fire
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isVisible()) {
+      debugLog("[MAIN] Timeout reached, forcing window to show");
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  }, 5000);
 
   // Handle window closed
   mainWindow.on("closed", () => {
@@ -308,14 +385,16 @@ function setupIpcHandlers(): void {
 }
 
 // App event handlers
-app.whenReady().then(() => {
-  createWindow();
+app.whenReady().then(async () => {
+  debugLog("[MAIN] Electron app is ready, creating window...");
+  await createWindow();
   setupIpcHandlers();
 
-  app.on("activate", () => {
+  app.on("activate", async () => {
     // On macOS, re-create a window when the dock icon is clicked
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      debugLog("[MAIN] Recreating window on activate...");
+      await createWindow();
     }
   });
 });
