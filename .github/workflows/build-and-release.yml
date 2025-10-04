@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest] # Focus on Windows for now
+        os: [windows-latest, macos-latest, ubuntu-latest]
 
     steps:
       - name: Checkout code
@@ -28,10 +28,21 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Delete package-lock.json
+        run: |
+          if (Test-Path package-lock.json) { Remove-Item package-lock.json -Force }
+        shell: pwsh
+        if: matrix.os == 'windows-latest'
+
+      - name: Delete package-lock.json (Unix)
+        run: rm -f package-lock.json
+        if: matrix.os != 'windows-latest'
+
       - name: Clean npm cache
         run: npm cache clean --force
 
-      - name: Install dependencies
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
         run: |
           npm config set fund false
           npm config set audit false
@@ -40,64 +51,65 @@ jobs:
         env:
           CI: true
           NODE_ENV: development
+          npm_config_yes: true
+          npm_config_fund: false
+          npm_config_audit: false
+
+      - name: Install dependencies (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          npm config set fund false
+          npm config set audit false
+          npm install --include=dev --verbose --omit=optional
+        env:
+          CI: true
+          NODE_ENV: development
+
+      - name: Verify dev dependencies installed
+        run: |
+          echo "Checking if @types/node is installed:"
+          npm list @types/node || echo "@types/node not found"
+          echo "Checking if typescript is installed:"
+          npm list typescript || echo "typescript not found"
+          echo "Checking if @types/jest is installed:"
+          npm list @types/jest || echo "@types/jest not found"
+
+      - name: Install TypeScript globally (fallback)
+        run: npm install -g typescript
+
+      - name: Verify TypeScript installation
+        run: tsc --version
 
       - name: Build TypeScript
         run: npm run build
 
       - name: Build Electron App (Windows)
+        if: matrix.os == 'windows-latest'
         run: npm run build:desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
 
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-installer
-          path: |
-            dist-electron/*.exe
-            dist-electron/*.msi
-
-  # Optional: Add macOS later with proper DMG license handling
-  build-macos:
-    runs-on: macos-latest
-    timeout-minutes: 30
-    continue-on-error: true # Allow this job to fail without breaking the pipeline
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: |
-          npm config set fund false
-          npm config set audit false
-          npm install --include=dev dmg-license
-        env:
-          CI: true
-
-      - name: Build TypeScript
-        run: npm run build
-
       - name: Build Electron App (macOS)
+        if: matrix.os == 'macos-latest'
         run: npm run build:desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload macOS artifacts
+      - name: Build Electron App (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run build:desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
-        if: success()
         with:
-          name: macos-installer
-          path: dist-electron/*.dmg
+          name: electron-app-${{ matrix.os }}
+          path: dist-electron/
 
   release:
     needs: build
@@ -108,16 +120,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            windows-installer/*.exe
-            windows-installer/*.msi
-            macos-installer/*.dmg
+            electron-app-windows-latest/**/*.exe
+            electron-app-windows-latest/**/*.msi
+            electron-app-macos-latest/**/*.dmg
+            electron-app-ubuntu-latest/**/*.AppImage
+            electron-app-ubuntu-latest/**/*.deb
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
