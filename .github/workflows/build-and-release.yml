@@ -50,6 +50,7 @@ jobs:
         shell: cmd
         env:
           CI: true
+          NODE_ENV: development
           npm_config_yes: true
           npm_config_fund: false
           npm_config_audit: false
@@ -62,6 +63,7 @@ jobs:
           npm install --verbose --omit=optional
         env:
           CI: true
+          NODE_ENV: development
 
       - name: Install TypeScript globally
         run: npm install -g typescript
@@ -78,6 +80,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
+          NODE_ENV: production
 
       # - name: Build Electron App (macOS)
       #   if: matrix.os == 'macos-latest'
