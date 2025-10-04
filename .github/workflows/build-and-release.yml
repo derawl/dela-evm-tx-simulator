@@ -1,4 +1,4 @@
-name: Build and Release Denlaly App
+name: Build and Release Prismik App
 
 on:
   push:
