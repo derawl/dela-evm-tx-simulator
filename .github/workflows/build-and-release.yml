@@ -28,39 +28,14 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Delete package-lock.json
-        run: |
-          if (Test-Path package-lock.json) { Remove-Item package-lock.json -Force }
-        shell: pwsh
-        if: matrix.os == 'windows-latest'
-
-      - name: Delete package-lock.json (Unix)
-        run: rm -f package-lock.json
-        if: matrix.os != 'windows-latest'
-
       - name: Clean npm cache
         run: npm cache clean --force
 
-      - name: Install dependencies (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Install dependencies
         run: |
           npm config set fund false
           npm config set audit false
-          npm install --include=dev --verbose --no-optional --no-shrinkwrap
-        shell: cmd
-        env:
-          CI: true
-          NODE_ENV: development
-          npm_config_yes: true
-          npm_config_fund: false
-          npm_config_audit: false
-
-      - name: Install dependencies (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          npm config set fund false
-          npm config set audit false
-          npm install --include=dev --verbose --omit=optional
+          npm ci --include=dev
         env:
           CI: true
           NODE_ENV: development
@@ -74,42 +49,25 @@ jobs:
           echo "Checking if @types/jest is installed:"
           npm list @types/jest || echo "@types/jest not found"
 
-      - name: Install TypeScript globally (fallback)
-        run: npm install -g typescript
-
       - name: Verify TypeScript installation
-        run: tsc --version
+        run: npx tsc --version
 
       - name: Build TypeScript
         run: npm run build
 
-      - name: Build Electron App (Windows)
-        if: matrix.os == 'windows-latest'
-        run: npm run build:desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CI: true
-
-      - name: Build Electron App (macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Build Electron App
         run: npm run build:desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Build Electron App (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run build:desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CI: true
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: electron-app-${{ matrix.os }}
-          path: dist-electron/
+          path: dist-electron/**
+          compression-level: 0
 
   release:
     needs: build
@@ -122,16 +80,19 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          merge-multiple: true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            electron-app-windows-latest/**/*.exe
-            electron-app-windows-latest/**/*.msi
-            electron-app-macos-latest/**/*.dmg
-            electron-app-ubuntu-latest/**/*.AppImage
-            electron-app-ubuntu-latest/**/*.deb
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
