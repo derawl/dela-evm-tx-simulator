@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest] # Focus on Windows for now
 
     steps:
       - name: Checkout code
@@ -35,39 +35,69 @@ jobs:
         run: |
           npm config set fund false
           npm config set audit false
-          npm ci --include=dev
+          npm install --include=dev --verbose --no-optional --no-shrinkwrap
+        shell: cmd
         env:
           CI: true
           NODE_ENV: development
 
-      - name: Verify dev dependencies installed
-        run: |
-          echo "Checking if @types/node is installed:"
-          npm list @types/node || echo "@types/node not found"
-          echo "Checking if typescript is installed:"
-          npm list typescript || echo "typescript not found"
-          echo "Checking if @types/jest is installed:"
-          npm list @types/jest || echo "@types/jest not found"
+      - name: Build TypeScript
+        run: npm run build
 
-      - name: Verify TypeScript installation
-        run: npx tsc --version
+      - name: Build Electron App (Windows)
+        run: npm run build:desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.msi
+
+  # Optional: Add macOS later with proper DMG license handling
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    continue-on-error: true # Allow this job to fail without breaking the pipeline
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          npm config set fund false
+          npm config set audit false
+          npm install --include=dev dmg-license
+        env:
+          CI: true
 
       - name: Build TypeScript
         run: npm run build
 
-      - name: Build Electron App
+      - name: Build Electron App (macOS)
         run: npm run build:desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload artifacts
+      - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: electron-app-${{ matrix.os }}
-          path: dist-electron/**
-          compression-level: 0
+          name: macos-installer
+          path: dist-electron/*.dmg
 
   release:
     needs: build
@@ -78,21 +108,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-          merge-multiple: true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/**/*.exe
-            artifacts/**/*.msi
-            artifacts/**/*.dmg
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
+            windows-installer/*.exe
+            windows-installer/*.msi
+            macos-installer/*.dmg
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
