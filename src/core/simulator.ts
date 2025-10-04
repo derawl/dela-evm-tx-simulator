@@ -42,39 +42,56 @@ export class TransactionSimulator extends EventEmitter {
     this.binariesPath = this.getBinariesPath();
   }
 
-  /**
-   * Get the correct path to bundled binaries
-   * Handles both development and packaged app scenarios
-   */
-  private getBinariesPath(): string {
-    // Check if we're in development mode (both NODE_ENV and Electron dev detection)
-    const isDev =
-      process.env.NODE_ENV === "development" ||
-      !process.env.NODE_ENV ||
-      /[\\/]electron-prebuilt[\\/]/.test(process.execPath) ||
-      /[\\/]electron[\\/]/.test(process.execPath);
+// ...existing code...
 
-    if (isDev) {
-      // In development, check from project root first
-      const projectRoot = process.cwd();
-      const projectBinariesPath = path.join(projectRoot, "binaries");
-      const fs = require("fs");
+/**
+ * Get the correct path to bundled binaries
+ * Handles both development and packaged app scenarios
+ */
+private getBinariesPath(): string {
+  // Better detection for packaged vs development
+  const isPackaged = 
+    // Check if we're in an asar file
+    __dirname.includes('app.asar') ||
+    // Check if process.resourcesPath exists (Electron packaged app)
+    (typeof process !== 'undefined' && process.resourcesPath) ||
+    // Check if we're running from installed location
+    process.execPath.includes('TX Simulator') ||
+    // Check production environment
+    process.env.NODE_ENV === 'production';
 
-      if (fs.existsSync(projectBinariesPath)) {
-        return projectBinariesPath;
-      }
+  const isDev = !isPackaged;
 
-      // Fallback to relative path from compiled location
-      return path.join(__dirname, "../../binaries");
+  console.log(`[SIMULATOR] Detection - isDev: ${isDev}, isPackaged: ${isPackaged}`);
+  console.log(`[SIMULATOR] __dirname: ${__dirname}`);
+  console.log(`[SIMULATOR] process.resourcesPath: ${process.resourcesPath}`);
+  console.log(`[SIMULATOR] process.execPath: ${process.execPath}`);
+
+  if (isDev) {
+    // In development, check from project root first
+    const projectRoot = process.cwd();
+    const projectBinariesPath = path.join(projectRoot, "binaries");
+    const fs = require("fs");
+
+    console.log(`[SIMULATOR] Dev mode - checking: ${projectBinariesPath}`);
+
+    if (fs.existsSync(projectBinariesPath)) {
+      console.log(`[SIMULATOR] Using dev binaries: ${projectBinariesPath}`);
+      return projectBinariesPath;
     }
 
-    // In packaged app, binaries are in resources/binaries
-    // Cast process.resourcesPath to any to handle Electron-specific property
-    const resourcesPath =
-      (process as any).resourcesPath || path.join(__dirname, "../..");
-    return path.join(resourcesPath, "binaries");
+    // Fallback to relative path from compiled location
+    const fallbackPath = path.join(__dirname, "../../binaries");
+    console.log(`[SIMULATOR] Using fallback dev binaries: ${fallbackPath}`);
+    return fallbackPath;
   }
 
+  // In packaged app, binaries are extracted as extraResources OUTSIDE the asar
+  // They are located at: resources/binaries/ (not inside app.asar)
+  const packagedPath = path.join(process.resourcesPath, "binaries");
+  console.log(`[SIMULATOR] Using packaged binaries: ${packagedPath}`);
+  return packagedPath;
+}
   /**
    * Get the full path to anvil executable
    * Handles cross-platform executable names and checks temp directory as fallback
@@ -89,7 +106,7 @@ export class TransactionSimulator extends EventEmitter {
 
     // If not found, try temp directory
     if (!fs.existsSync(anvilPath)) {
-      anvilPath = path.join(this.binariesPath, "temp", executable);
+      anvilPath = path.join(this.binariesPath, executable);
     }
 
     return anvilPath;
@@ -109,7 +126,7 @@ export class TransactionSimulator extends EventEmitter {
 
     // If not found, try temp directory
     if (!fs.existsSync(castPath)) {
-      castPath = path.join(this.binariesPath, "temp", executable);
+      castPath = path.join(this.binariesPath, executable);
     }
 
     return castPath;
