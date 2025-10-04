@@ -79,20 +79,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
 
-      - name: Build Electron App (macOS)
-        if: matrix.os == 'macos-latest'
-        run: npm run build:desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CI: true
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+      # - name: Build Electron App (macOS)
+      #   if: matrix.os == 'macos-latest'
+      #   run: npm run build:desktop
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     CI: true
+      #     CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Build Electron App (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run build:desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CI: true
+      # - name: Build Electron App (Linux)
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: npm run build:desktop
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     CI: true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
