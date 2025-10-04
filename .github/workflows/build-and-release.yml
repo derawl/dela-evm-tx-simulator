@@ -2,16 +2,17 @@ name: Build and Release Denlaly App
 
 on:
   push:
-    branches: [main, master] # Triggers on pushes to main/master
+    branches: [main, master]
     tags:
-      - "v*.*.*" # Triggers on version tags like v1.0.0, v1.2.3, etc.
+      - "v*.*.*"
   pull_request:
-    branches: [main, master] # Also trigger on PRs
-  workflow_dispatch: # Allows manual triggering
+    branches: [main, master]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30 # Add timeout to prevent hanging
 
     strategy:
       matrix:
@@ -24,17 +25,43 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20" # Updated to Node 20 to fix engine warnings
+          node-version: "20"
           cache: "npm"
+
+      - name: Delete package-lock.json
+        run: |
+          if (Test-Path package-lock.json) { Remove-Item package-lock.json -Force }
+        shell: pwsh
+        if: matrix.os == 'windows-latest'
+
+      - name: Delete package-lock.json (Unix)
+        run: rm -f package-lock.json
+        if: matrix.os != 'windows-latest'
 
       - name: Clean npm cache
         run: npm cache clean --force
 
-      - name: Install dependencies
-        run: npm install --omit=optional --silent
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm config set fund false
+          npm config set audit false
+          npm install --verbose --no-optional --no-shrinkwrap
+        shell: cmd
         env:
           CI: true
-          NODE_ENV: production
+          npm_config_yes: true
+          npm_config_fund: false
+          npm_config_audit: false
+
+      - name: Install dependencies (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          npm config set fund false
+          npm config set audit false
+          npm install --verbose --omit=optional
+        env:
+          CI: true
 
       - name: Install TypeScript globally
         run: npm install -g typescript
