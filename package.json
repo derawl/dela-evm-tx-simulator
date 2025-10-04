@@ -2,7 +2,7 @@
   "name": "tx-simulator",
   "version": "1.0.0",
   "description": "A modular EVM transaction simulator with CLI, desktop app, and VS Code extension",
-  "main": "dist/core/index.js",
+  "main": "dist/desktop/main.js",
   "bin": {
     "tx-sim": "dist/cli/index.js"
   },
@@ -67,13 +67,40 @@
     },
     "files": [
       "dist/**/*",
-      "binaries/**/*"
+      "package.json",
+      "!binaries/**/*",
+      "!node_modules",
+      "!src",
+      "!examples", 
+      "!.git",
+      "!.github"
     ],
     "extraResources": [
       {
         "from": "binaries/",
-        "to": "binaries/"
+        "to": "binaries/",
+        "filter": ["**/*"]
       }
-    ]
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TX Simulator",
+      "uninstallDisplayName": "TX Simulator",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": true
+    }
   }
 }
