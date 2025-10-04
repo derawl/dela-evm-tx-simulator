@@ -24,17 +24,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20" # Updated to Node 20 to fix engine warnings
           cache: "npm"
 
       - name: Clean npm cache
         run: npm cache clean --force
 
       - name: Install dependencies
-        run: npm install --no-optional --no-fund --no-audit
+        run: npm install --omit=optional --silent
         env:
           CI: true
           NODE_ENV: production
+
+      - name: Install TypeScript globally
+        run: npm install -g typescript
+
+      - name: Verify TypeScript installation
+        run: tsc --version
 
       - name: Build TypeScript
         run: npm run build
