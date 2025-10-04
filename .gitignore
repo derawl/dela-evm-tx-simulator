@@ -3,3 +3,6 @@ dist
 desin.md
 initial.md
 binaries
+.env
+dist-electron
+tx-simulator-debug.log
