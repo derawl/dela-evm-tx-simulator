@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
-    <title>Denlaly TX Simulator</title>
+    <title>Raliet EVM TX Simulator</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="app">
         <header class="header">
             <div class="header-content">
-                <h1><span class="logo">⚡</span>Denlaly TX Simulator</h1>
+                <h1><span class="logo">⚡</span>Raliet EVM TX Simulator</h1>
                 <div class="header-actions">
                     <button id="new-simulation" class="btn btn-primary">
                         <span class="icon">➕</span> New Simulation
@@ -25,18 +25,6 @@
 
         <main class="main">
             <div class="sidebar">
-                <div class="section">
-                    <h3>Network Configuration</h3>
-                    <div class="form-group">
-                        <label for="rpc-url">RPC URL:</label>
-                        <input type="url" id="rpc-url" placeholder="https://ethereum-rpc.publicnode.com" 
-                               value="https://ethereum-rpc.publicnode.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="fork-block">Fork Block (optional):</label>
-                        <input type="number" id="fork-block" placeholder="Latest">
-                    </div>
-                </div>
 
                 <div class="section">
                     <h3>Transaction Details</h3>
