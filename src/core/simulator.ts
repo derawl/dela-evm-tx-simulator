@@ -71,14 +71,14 @@ private getBinariesPath(): string {
     // In development, check from project root first
     const projectRoot = process.cwd();
     const projectBinariesPath = path.join(projectRoot, "binaries");
-    const fs = require("fs");
+    // const fs = require("fs");
 
-    console.log(`[SIMULATOR] Dev mode - checking: ${projectBinariesPath}`);
+    // console.log(`[SIMULATOR] Dev mode - checking: ${projectBinariesPath}`);
 
-    if (fs.existsSync(projectBinariesPath)) {
-      console.log(`[SIMULATOR] Using dev binaries: ${projectBinariesPath}`);
-      return projectBinariesPath;
-    }
+    // if (fs.existsSync(projectBinariesPath)) {
+    //   console.log(`[SIMULATOR] Using dev binaries: ${projectBinariesPath}`);
+    //   return projectBinariesPath;
+    // }
 
     // Fallback to relative path from compiled location
     const fallbackPath = path.join(__dirname, "../../binaries");
