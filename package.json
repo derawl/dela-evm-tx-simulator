@@ -7,7 +7,7 @@
     "tx-sim": "dist/cli/index.js"
   },
   "scripts": {
-    "build": "tsc  --skipLibCheck",
+    "build": "tsc  --skipLibCheck && cp -r src/renderer dist/",
     "build:watch": "tsc --watch",
     "dev:cli": "ts-node src/cli/index.ts",
     "dev:desktop": "electron dist/desktop/main.js",
