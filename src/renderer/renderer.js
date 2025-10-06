@@ -3,22 +3,27 @@
  * Handles the frontend UI and communicates with the main process
  */
 
+
 // Global state
 let currentSimulation = null;
 let isSimulationRunning = false;
 
-// UI elements
-const elements = {
-    // Form inputs
-    rpcUrl: document.getElementById('rpc-url'),
-    forkBlock: document.getElementById('fork-block'),
-    fromAddress: document.getElementById('from-address'),
-    toAddress: document.getElementById('to-address'),
-    value: document.getElementById('value'),
-    gasLimit: document.getElementById('gas-limit'),
-    gasPrice: document.getElementById('gas-price'),
-    enableTrace: document.getElementById('enable-trace'),
-    debugMode: document.getElementById('debug-mode'),
+// UI elements - will be populated after DOM loads
+let elements = {};
+
+function initializeElements() {
+    console.log('Initializing elements...');
+    elements = {
+        // Form inputs
+        rpcUrl: document.getElementById('rpc-url'),
+        forkBlock: document.getElementById('fork-block'),
+        fromAddress: document.getElementById('from-address'),
+        toAddress: document.getElementById('to-address'),
+        value: document.getElementById('value'),
+        gasLimit: document.getElementById('gas-limit'),
+        gasPrice: document.getElementById('gas-price'),
+        enableTrace: document.getElementById('enable-trace'),
+        debugMode: document.getElementById('debug-mode'),
     
     // Contract interaction
     enableContractCall: document.getElementById('enable-contract-call'),
@@ -37,6 +42,7 @@ const elements = {
     // Tabs
     tabButtons: document.querySelectorAll('.tab-button'),
     tabPanels: document.querySelectorAll('.tab-panel'),
+    loadNetworks: document.getElementById('chain-selector'),
 
     // Results
     noResults: document.getElementById('no-results'),
@@ -63,10 +69,19 @@ const elements = {
     connectionStatus: document.getElementById('connection-status'),
     version: document.getElementById('version'),
 
-    // Loading
-    loadingOverlay: document.getElementById('loading-overlay'),
-    loadingMessage: document.getElementById('loading-message')
-};
+        // Loading
+        loadingOverlay: document.getElementById('loading-overlay'),
+        loadingMessage: document.getElementById('loading-message')
+    };
+    
+    console.log('Elements initialized:');
+    console.log('- Chain selector (loadNetworks):', elements.loadNetworks);
+    console.log('- RPC URL:', elements.rpcUrl);
+    console.log('- Run button:', elements.runSimulation);
+}
+
+
+
 
 /**
  * Initialize the application
@@ -74,31 +89,52 @@ const elements = {
 function initializeApp() {
     console.log('Initializing TX Simulator...');
     
+    // Initialize DOM elements first
+    initializeElements();
+    
     // Set up event listeners
     setupEventListeners();
     
     // Initialize tabs
     initializeTabs();
     
-    // Update UI state
-    updateUIState();
+    // Save networks (loading will happen in DOMContentLoaded)
+    NetworkManager.saveAllNetworks();
     
-    // Log startup
-    addLog('info', 'TX Simulator initialized successfully');
-    
-    console.log('TX Simulator initialization complete');
+    console.log('TX Simulator core initialization complete');
 }
 
 /**
  * Set up all event listeners
  */
 function setupEventListeners() {
-    // Button handlers
-    elements.newSimulation.addEventListener('click', handleNewSimulation);
-    elements.runSimulation.addEventListener('click', handleRunSimulation);
-    elements.validateConfig.addEventListener('click', handleValidateConfig);
-    elements.clearResults.addEventListener('click', handleClearResults);
-    elements.clearLogs.addEventListener('click', handleClearLogs);
+    // Button handlers with debug logging
+    console.log('Setting up event listeners...');
+    
+    if (elements.newSimulation) {
+        elements.newSimulation.addEventListener('click', handleNewSimulation);
+        console.log('New simulation button listener added');
+    }
+    
+    if (elements.runSimulation) {
+        elements.runSimulation.addEventListener('click', (e) => {
+            console.log('Run button clicked!', e);
+            handleRunSimulation();
+        });
+        console.log('Run simulation button listener added');
+    } else {
+        console.error('Run simulation button not found!');
+    }
+    
+    if (elements.validateConfig) {
+        elements.validateConfig.addEventListener('click', handleValidateConfig);
+    }
+    if (elements.clearResults) {
+        elements.clearResults.addEventListener('click', handleClearResults);
+    }
+    if (elements.clearLogs) {
+        elements.clearLogs.addEventListener('click', handleClearLogs);
+    }
 
     // Tab handlers
     elements.tabButtons.forEach(button => {
@@ -135,19 +171,45 @@ function setupEventListeners() {
 
     // IPC event listeners
     if (window.electronAPI) {
+        console.log('ElectronAPI available, setting up IPC listeners...');
+        
         // Simulation progress updates
-        window.electronAPI.onSimulationProgress((data) => {
-            handleSimulationProgress(data);
-        });
+        try {
+            if (typeof window.electronAPI.onSimulationProgress === 'function') {
+                window.electronAPI.onSimulationProgress((data) => {
+                    handleSimulationProgress(data);
+                });
+                console.log('Simulation progress listener added');
+            }
+        } catch (error) {
+            console.warn('Could not set up simulation progress listener:', error);
+        }
 
-        // Menu events
-        window.electronAPI.onMenuNewSimulation(handleNewSimulation);
-        window.electronAPI.onMenuOpenSimulation(handleOpenSimulation);
-        window.electronAPI.onMenuSaveSimulation(handleSaveSimulation);
-        window.electronAPI.onMenuRunSimulation(handleRunSimulation);
-        window.electronAPI.onMenuStopSimulation(handleStopSimulation);
-        window.electronAPI.onMenuClearResults(handleClearResults);
-        window.electronAPI.onDeepLink(handleDeepLink);
+        // Menu events - wrap in try-catch to prevent initialization failure
+        const menuEvents = [
+            { method: 'onMenuNewSimulation', handler: handleNewSimulation },
+            { method: 'onMenuOpenSimulation', handler: handleOpenSimulation },
+            { method: 'onMenuSaveSimulation', handler: handleSaveSimulation },
+            { method: 'onMenuRunSimulation', handler: handleRunSimulation },
+            { method: 'onMenuStopSimulation', handler: handleStopSimulation },
+            { method: 'onMenuClearResults', handler: handleClearResults },
+            { method: 'onDeepLink', handler: handleDeepLink }
+        ];
+        
+        menuEvents.forEach(({ method, handler }) => {
+            try {
+                if (typeof window.electronAPI[method] === 'function') {
+                    window.electronAPI[method](handler);
+                    console.log(`${method} listener added`);
+                } else {
+                    console.log(`${method} not available - skipping`);
+                }
+            } catch (error) {
+                console.warn(`Could not set up ${method}:`, error);
+            }
+        });
+    } else {
+        console.log('ElectronAPI not available - running in development mode');
     }
 }
 
@@ -219,7 +281,18 @@ function updateUIState() {
     elements.runSimulation.disabled = !isConfigValid || isSimulationRunning;
     elements.validateConfig.disabled = isSimulationRunning;
     
-    // Update connection status (mock for now)
+    // Update button text based on running state
+    if (isSimulationRunning) {
+        elements.runSimulation.textContent = '🔄 Running...';
+        elements.runSimulation.classList.add('btn-warning');
+        elements.runSimulation.classList.remove('btn-success');
+    } else {
+        elements.runSimulation.innerHTML = '<span class="icon">▶️</span> Run';
+        elements.runSimulation.classList.add('btn-success');
+        elements.runSimulation.classList.remove('btn-warning');
+    }
+    
+    // Update connection status
     updateConnectionStatus(elements.rpcUrl.value ? 'connected' : 'disconnected');
 }
 
@@ -350,7 +423,7 @@ function getFormConfig() {
 function handleNewSimulation() {
     addLog('info', 'Starting new simulation...');
     
-    // Reset form to defaults
+    // Reset form to defaults with valid values
     elements.rpcUrl.value = 'https://ethereum-rpc.publicnode.com';
     elements.forkBlock.value = '';
     elements.fromAddress.value = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
@@ -361,26 +434,34 @@ function handleNewSimulation() {
     elements.enableTrace.checked = true;
     elements.debugMode.checked = false;
     
+    // Ensure contract call is disabled for simple ETH transfer
+    elements.enableContractCall.checked = false;
+    toggleContractFields();
+    
     // Clear results
     handleClearResults();
     
-    // Update UI
+    // Update UI and validate
     updateUIState();
     
-    addLog('info', 'New simulation created');
+    addLog('info', 'New simulation created with default values');
 }
 
 /**
  * Handle run simulation
  */
 async function handleRunSimulation() {
+    console.log('handleRunSimulation called');
+    addLog('info', 'Run button clicked - starting simulation check...');
+    
     if (isSimulationRunning) {
         addLog('warning', 'Simulation already running');
         return;
     }
 
     const config = getFormConfig();
-    addLog('info', 'Running simulation with config:');
+    console.log('Got form config:', config);
+    
     if (!validateForm()) {
         addLog('error', 'Invalid configuration. Please check your inputs.');
         return;
@@ -778,7 +859,37 @@ function formatValue(value, decimals = 4) {
 }
 
 // Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded, starting initialization...');
+    
+    // Initialize the main app
+    initializeApp();
+    
+    // Add a slight delay to ensure everything is ready
+    setTimeout(() => {
+        // Load networks after everything is initialized
+        console.log('Loading networks to DOM...');
+        
+        try {
+            NetworkManager.loadNetworksToDom();
+            
+            // Log networks loaded
+            const getNetworks = NetworkManager.getNetworks();
+            console.log('Networks loaded:', Object.keys(getNetworks));
+            addLog('info', `Loaded networks: ${Object.keys(getNetworks).join(', ')}`);
+            
+        } catch (error) {
+            console.error('Error loading networks:', error);
+            addLog('error', `Failed to load networks: ${error.message}`);
+        }
+        
+        // Initialize with default values for testing
+        handleNewSimulation();
+        
+        addLog('info', 'TX Simulator initialized successfully');
+        console.log('Full initialization complete');
+    }, 50);
+});
 
 // Export for debugging
 if (typeof module !== 'undefined' && module.exports) {
@@ -789,3 +900,160 @@ if (typeof module !== 'undefined' && module.exports) {
         addLog
     };
 }
+
+
+class NetworkManager {
+    
+    // store all networks with their rpc urls in local storage
+    constructor(networkConfig) {
+        for (const [name, rpcUrl] of Object.entries(networkConfig)) {
+            this.saveNetwork(name, rpcUrl);
+        }
+    }
+   
+    static isFirstRun() {
+        return !localStorage.getItem('networks');
+    }
+
+    static getNetworks() {
+        const networks = localStorage.getItem('networks');
+        return networks ? JSON.parse(networks) : {};
+    }
+
+    static loadNetworksToDom() {
+        console.log('loadNetworksToDom called');
+        console.log('elements.loadNetworks:', elements.loadNetworks);
+        
+        let domObject = elements.loadNetworks;
+        if (!domObject) {
+            console.warn('Chain selector element not found in elements, trying fallback...');
+            domObject = document.getElementById('chain-selector');
+            if (!domObject) {
+                console.error('Chain selector element not found anywhere!');
+                return;
+            }
+            console.log('Found chain selector via fallback');
+        }
+        
+        console.log('Chain selector found, clearing options...');
+        // Clear existing options first
+        domObject.innerHTML = '';
+        
+        const networks = this.getNetworks();
+        console.log('Loading networks to DOM:', networks);
+        console.log('Number of networks:', Object.keys(networks).length);
+        
+        // Add a default option
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.text = "Select a network...";
+        domObject.appendChild(defaultOption);
+        console.log('Added default option');
+        
+        // Add networks as options
+        let count = 0;
+        for (const [name, rpcUrl] of Object.entries(networks)) {
+            const option = document.createElement("option");
+            option.value = rpcUrl;
+            option.text = name;
+            domObject.appendChild(option);
+            count++;
+            console.log(`Added network option ${count}: ${name} -> ${rpcUrl}`);
+        }
+        
+        console.log(`Total ${count} network options added`);
+
+        // Remove existing event listeners to prevent duplicates
+        domObject.removeEventListener('change', handleNetworkChange);
+        domObject.addEventListener('change', handleNetworkChange);
+        console.log('Network change event listener added');
+        
+        // Update elements.loadNetworks if it was found via fallback
+        if (!elements.loadNetworks) {
+            elements.loadNetworks = domObject;
+            console.log('Updated elements.loadNetworks with fallback element');
+        }
+    }
+
+    static saveAllNetworks() {
+        if (!this.isFirstRun()) {
+            console.log('Networks already exist in local storage, skipping saveAllNetworks');
+            return;
+        }
+        const networkConfig = {
+        'Ethereum Mainnet': 'https://ethereum-rpc.publicnode.com',
+        'Polygon Mainnet': 'https://polygon-rpc.com',
+        'Mumbai Testnet': 'https://rpc-mumbai.maticvigil.com',
+        'Binance Smart Chain': 'https://bsc-dataseed.binance.org/',
+        'Avalanche Mainnet': 'https://api.avax.network/ext/bc/C/rpc',
+        'Fantom Opera': 'https://rpc.ftm.tools/',
+        'Optimism Mainnet': 'https://mainnet.optimism.io',
+        'Arbitrum One': 'https://arb1.arbitrum.io/rpc'
+        };
+        for (const [name, rpcUrl] of Object.entries(networkConfig)) {
+            this.saveNetwork(name, rpcUrl);
+        }
+    }
+
+    static saveNetwork(name, rpcUrl) {
+        const networks = this.getNetworks();
+        networks[name] = rpcUrl;
+        localStorage.setItem('networks', JSON.stringify(networks));
+    }
+
+    static deleteNetwork(name) {
+        const networks = this.getNetworks();
+        delete networks[name];
+        localStorage.setItem('networks', JSON.stringify(networks));
+    }
+
+    static clearNetworks() {
+        localStorage.removeItem('networks');
+    }
+}
+
+// Network change handler function
+function handleNetworkChange(event) {
+    const selectedRpcUrl = event.target.value;
+    if (selectedRpcUrl && elements.rpcUrl) {
+        elements.rpcUrl.value = selectedRpcUrl;
+        console.log('Network changed to:', selectedRpcUrl);
+        
+        // Trigger input event to validate form
+        const inputEvent = new Event('input', { bubbles: true });
+        elements.rpcUrl.dispatchEvent(inputEvent);
+        
+        // Update UI state
+        updateUIState();
+    }
+}
+
+// Manual network loading function for debugging
+function loadNetworksManually() {
+    console.log('Manual network loading triggered');
+    NetworkManager.saveAllNetworks();
+    NetworkManager.loadNetworksToDom();
+    const networks = NetworkManager.getNetworks();
+    addLog('info', `Manually loaded networks: ${Object.keys(networks).join(', ')}`);
+}
+
+// Test function to verify elements are ready
+function testElementsReady() {
+    console.log('Testing elements readiness...');
+    console.log('Chain selector:', document.getElementById('chain-selector'));
+    console.log('RPC URL:', document.getElementById('rpc-url'));
+    console.log('Run button:', document.getElementById('run-simulation'));
+    console.log('Elements object:', elements);
+    return {
+        chainSelector: !!document.getElementById('chain-selector'),
+        rpcUrl: !!document.getElementById('rpc-url'),
+        runButton: !!document.getElementById('run-simulation'),
+        elementsPopulated: !!elements.loadNetworks
+    };
+}
+
+// Make functions available globally for debugging
+window.loadNetworksManually = loadNetworksManually;
+window.testElementsReady = testElementsReady;
+
+
