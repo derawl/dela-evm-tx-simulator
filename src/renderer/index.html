@@ -16,7 +16,7 @@
                     <button id="new-simulation" class="btn btn-primary">
                         <span class="icon">➕</span> New Simulation
                     </button>
-                    <button id="run-simulation" class="btn btn-success" disabled>
+                    <button id="run-simulation" class="btn btn-success">
                         <span class="icon">▶️</span> Run
                     </button>
                 </div>
@@ -25,6 +25,38 @@
 
         <main class="main">
             <div class="sidebar">
+                  <div class="section">
+                    <h3>Network Configuration</h3>
+                    <div class="form-group">
+                        <label for="chain-selector">Chain:</label>
+                        <select id="chain-selector">
+                            <option value="custom">Custom Network</option>
+                        </select>
+                        
+                    </div>
+                    <div class="form-group">
+                        <label for="rpc-url">RPC URL:</label>
+                        <input type="text" id="rpc-url" 
+                               placeholder="http://localhost:8545"
+                               value="http://localhost:8545">
+                        <br/>
+                       
+                    </div>
+                    <div class="form-group">
+                         <label for="fork-block">Fork Block (optional):</label>
+                        <input type="text" id="fork-block" 
+                               placeholder="Fork Block (optional)"
+                               value="latest">
+                    </div>
+                    <div class="form-group" id="custom-network-name-group" style="display: none;">
+                        <label for="custom-network-name">Network Name:</label>
+                        <input type="text" id="custom-network-name" placeholder="My Custom Network">
+                        <div class="network-actions">
+                            <button type="button" id="save-network" class="btn btn-small btn-primary">Save Network</button>
+                            <!-- <button type="button" id="manage-networks" class="btn btn-small btn-secondary">Manage Saved</button> -->
+                        </div>
+                    </div>
+                </div>
 
                 <div class="section">
                     <h3>Transaction Details</h3>
