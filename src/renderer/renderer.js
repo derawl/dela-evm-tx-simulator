@@ -44,6 +44,12 @@ function initializeElements() {
     tabPanels: document.querySelectorAll('.tab-panel'),
     loadNetworks: document.getElementById('chain-selector'),
 
+    // Network Management
+    chainSelector: document.getElementById('chain-selector'),
+    customNetworkName: document.getElementById('custom-network-name'),
+    customNetworkNameGroup: document.getElementById('custom-network-name-group'),
+    saveNetwork: document.getElementById('save-network'),
+
     // Results
     noResults: document.getElementById('no-results'),
     simulationResults: document.getElementById('simulation-results'),
@@ -150,6 +156,14 @@ function setupEventListeners() {
 
     // Contract interaction handlers
     elements.enableContractCall.addEventListener('change', toggleContractFields);
+
+    // Network management handlers
+    if (elements.chainSelector) {
+        elements.chainSelector.addEventListener('change', handleNetworkChange);
+    }
+    if (elements.saveNetwork) {
+        elements.saveNetwork.addEventListener('click', handleSaveNetwork);
+    }
 
     // Form validation
     const formInputs = [
@@ -981,14 +995,15 @@ class NetworkManager {
             return;
         }
         const networkConfig = {
-        'Ethereum Mainnet': 'https://ethereum-rpc.publicnode.com',
-        'Polygon Mainnet': 'https://polygon-rpc.com',
-        'Mumbai Testnet': 'https://rpc-mumbai.maticvigil.com',
-        'Binance Smart Chain': 'https://bsc-dataseed.binance.org/',
-        'Avalanche Mainnet': 'https://api.avax.network/ext/bc/C/rpc',
-        'Fantom Opera': 'https://rpc.ftm.tools/',
-        'Optimism Mainnet': 'https://mainnet.optimism.io',
-        'Arbitrum One': 'https://arb1.arbitrum.io/rpc'
+            "Custom Network": "custom",
+            'Ethereum Mainnet': 'https://ethereum-rpc.publicnode.com',
+            'Polygon Mainnet': 'https://polygon-rpc.com',
+            'Mumbai Testnet': 'https://rpc-mumbai.maticvigil.com',
+            'Binance Smart Chain': 'https://bsc-dataseed.binance.org/',
+            'Avalanche Mainnet': 'https://api.avax.network/ext/bc/C/rpc',
+            'Fantom Opera': 'https://rpc.ftm.tools/',
+            'Optimism Mainnet': 'https://mainnet.optimism.io',
+            'Arbitrum One': 'https://arb1.arbitrum.io/rpc'
         };
         for (const [name, rpcUrl] of Object.entries(networkConfig)) {
             this.saveNetwork(name, rpcUrl);
@@ -1016,8 +1031,23 @@ class NetworkManager {
 function handleNetworkChange(event) {
     const selectedRpcUrl = event.target.value;
     if (selectedRpcUrl && elements.rpcUrl) {
+        if (selectedRpcUrl === "custom") {
+            //enable custom input
+            document.getElementById('custom-network-name-group').style.display = 'block';
+            addLog('info', 'Custom network selected - enter network details');
+            return;
+        }
+        // Hide custom network fields for predefined networks
+        document.getElementById('custom-network-name-group').style.display = 'none';
+        
         elements.rpcUrl.value = selectedRpcUrl;
         console.log('Network changed to:', selectedRpcUrl);
+        
+        // Get network name for logging
+        const selectedOption = event.target.selectedOptions[0];
+        if (selectedOption) {
+            addLog('info', `Selected network: ${selectedOption.text}`);
+        }
         
         // Trigger input event to validate form
         const inputEvent = new Event('input', { bubbles: true });
@@ -1026,6 +1056,53 @@ function handleNetworkChange(event) {
         // Update UI state
         updateUIState();
     }
+}
+
+// Handle save network button click
+function handleSaveNetwork() {
+    const networkName = elements.customNetworkName.value.trim();
+    const rpcUrl = elements.rpcUrl.value.trim();
+    
+    if (!networkName) {
+        addLog('error', 'Please enter a network name');
+        return;
+    }
+    
+    if (!rpcUrl) {
+        addLog('error', 'Please enter an RPC URL');
+        return;
+    }
+    
+    // Validate RPC URL format
+    try {
+        new URL(rpcUrl);
+    } catch (error) {
+        addLog('error', 'Please enter a valid RPC URL');
+        return;
+    }
+    
+    // Save the network
+    NetworkManager.saveNetwork(networkName, rpcUrl);
+    
+    // Reload networks in dropdown
+    NetworkManager.loadNetworksToDom();
+    
+    // Clear the custom network name field
+    elements.customNetworkName.value = '';
+    
+    // Hide custom network fields
+    elements.customNetworkNameGroup.style.display = 'none';
+    
+    // Select the newly saved network
+    const chainSelector = elements.chainSelector;
+    for (let option of chainSelector.options) {
+        if (option.value === rpcUrl) {
+            chainSelector.value = rpcUrl;
+            break;
+        }
+    }
+    
+    addLog('success', `Network "${networkName}" saved successfully!`);
 }
 
 // Manual network loading function for debugging
