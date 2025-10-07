@@ -65,6 +65,10 @@ jobs:
           CI: true
           NODE_ENV: development
 
+      - name: Ensure required dev dependencies are installed
+        run: |
+          npm install --save-dev @types/node typescript @types/jest
+
       - name: Verify dev dependencies installed
         run: |
           echo "Checking if @types/node is installed:"
