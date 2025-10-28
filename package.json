@@ -1,6 +1,6 @@
 {
   "name": "tx-simulator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A modular EVM transaction simulator with CLI, desktop app, and VS Code extension",
   "main": "dist/desktop/main.js",
   "bin": {
