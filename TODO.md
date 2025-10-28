@@ -1,0 +1,7 @@
+- Add edit mode for network and rpc settings
+- Save tx flows and reopen them an view results
+- Improve tracing flow 
+- Allow imports of contract abi and saving them
+- Use contract abi to improve tracing explanations
+- Add AI analyzer that can review the tx and provide insights
+- Add more predefined networks
